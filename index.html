@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spaceman Predictor | Dosis77</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .loading {
+      font-size: 1.2em;
+      margin: 20px 0;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    #chartContainer {
+      max-width: 700px;
+      margin: 30px auto;
+    }
+
+    .multiplier-box {
+      font-size: 2.4em;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    .prediction {
+      margin-top: 10px;
+      font-size: 1.4em;
+      color: #00ff99;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔮 Bot Spaceman Dosis77</h1>
+  <div class="loading" id="loading">⏳ Memproses prediksi...</div>
+  <div class="multiplier-box" id="latest">🚀 0.00x</div>
+  <div class="prediction" id="prediction">Prediksi selanjutnya: 0.00x</div>
+
+  <div id="chartContainer">
+    <canvas id="chart"></canvas>
+  </div>
+
+  <audio id="high" src="https://www.myinstants.com/media/sounds/notification.mp3"></audio>
+  <audio id="low" src="https://www.myinstants.com/media/sounds/error.mp3"></audio>
+
+  <script>
+    const socket = io();
+    const latestEl = document.getElementById("latest");
+    const predictionEl = document.getElementById("prediction");
+    const loadingEl = document.getElementById("loading");
+    const audioHigh = document.getElementById("high");
+    const audioLow = document.getElementById("low");
+
+    const chartCtx = document.getElementById("chart").getContext("2d");
+    const chart = new Chart(chartCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Multiplier',
+          borderColor: '#00ffcc',
+          data: [],
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    function updateChart(multiplier) {
+      if (chart.data.labels.length > 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.data.labels.push('');
+      chart.data.datasets[0].data.push(multiplier);
+      chart.update();
+    }
+
+    socket.on("newData", data => {
+      loadingEl.style.display = "none";
+      latestEl.innerText = `🚀 ${data.value.toFixed(2)}x`;
+      predictionEl.innerText = `Prediksi selanjutnya: ${data.predicted}x`;
+      updateChart(data.value);
+
+      // Notifikasi suara
+      if (data.value >= 2) {
+        audioHigh.play();
+      } else {
+        audioLow.play();
+      }
+    });
+
+    // Loading simulasi 5 detik awal
+    setTimeout(() => {
+      loadingEl.innerText = "✅ Siap melakukan prediksi otomatis!";
+    }, 5000);
+  </script>
+</body>
+</html>
